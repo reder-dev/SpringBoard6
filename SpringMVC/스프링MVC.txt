@@ -1,0 +1,236 @@
+스프링MVC.txt
+
+* 스프링 프로젝트
+	  (Spring Framework-전자정부 프레임워크)	
+	- Spring Legacy Project : 아직까지 실무에서 사용되는 프로젝트
+	                          기존의 프로젝트를 이해하는데 도움(유지보수) 
+							  모든 버젼의 스프링사용가능
+							  
+							  초반에 연동/설정이 어려움
+							  WAS연결에 따른 리소스 소모가 많음
+	
+	- Spring Boot Project : 별도의 설정이 없음(시작이 쉬움)
+	 						별도의 WAS가 필요없음(내장 서버O)
+	 						추가 학습에 대한 노력이 필요함
+	 						다른 방식의 개발
+	 						프로젝트 버젼에 알맞은 라이브러리 버전 자동체크
+	 						JSP 뷰페이지 설정이 추가적으로 필요		
+	
+*	pom.xml 파일을 사용한 MAVEN 빌드도구가 
+	아래 경로에 파일을 직접적으로 저장 및 관리
+	[ C:\Users\ITWILL\.m2\repository ]
+	
+	
+   [기존 MVC]	
+   [요청] ->  [Controller] - [Model] - [DB]
+	               |
+	            [View]
+	            
+	         
+   [스프링 MVC]
+	            			 [HandlerMapping]	
+            				//
+   [요청] ->  [DispatcherServlet]  = [Handler Adapter] =   [Controller] - [Service] - [DAO] - [DB]
+		               |    \\
+		            [View]    [viewResolver]
+	
+	         /************************Presentation Layer*****************/Business Layer/Data Access Layer/
+	* Presentation Layer : UI를 구성하는 요소들이 포함된 계층
+	* Business (Logic) Layer : 서비스 계층, 사용자의 요구사항을 구현하는 계층
+	* Data Access Layer : Persistence Layer(영속계층), 데이터 처리를 위한 계층
+	
+	/Data Access Layer/
+	 [DAO] - {Mybatis-Spring} - [MyBatis] - [DB]
+	 
+	설치한 라이브러리 목록
+	[Mybatis, Mybatis-Spring, Spring-jdbc, Spring-test]
+	 
+	https://mybatis.org/mybatis-3/ko/index.html 
+	MyBatis : - SQL mapper 라이브러리 
+	          - SQL, 저장프로시저 그리고 몇가지 고급 매핑을 지원하는
+	            퍼시스턴스 프레임워크
+			  - JDBC의 기능을 간결하게 처리가능	(try~catch,pstmt,rs)
+			  - SQL구문의 분리운영 (1) XML코드 2)어노테이션 )
+			  - 동적 SQL구문을 지원(if문,for문...)
+			  - Spring와 연결의 자동화 
+			  
+			  
+			  
+	<!-- DataSource - DB연결정보 객체  -->
+	import com.itwill.ex.Test;	
+	
+	Test itwill = new Test();
+	itwill.setName("com.mysql.cj.jdbc.Driver");
+	
+	Test itwill = new Test(hikariConfig);
+	
+	<bean id="itwill"
+	      class="com.itwill.ex.Test">
+	    객체에 값을 저장(set메서드) 
+	    <property name="name" 
+	             value="com.mysql.cj.jdbc.Driver" />
+	     객체의 생성자를 사용해서 초기화             
+	    <constructor-arg ref="hikariConfig"/>   
+    </bean>		  
+			  
+	
+	* 의존객체 자동주입(Automatic Dependency Injection)
+	 => 스프링의 설정파일에서 객체 대상을 명시하지 않고, 스프링(컨테이너)이
+	 자동으로 해당 대상을 찾아서 객체의 의존성을 주입하는것
+	 
+	 
+	 @Inject
+	  Java에서 지원하는 어노테이션(특정 언어/프레임워크에 비종속적)
+	  
+	  * 대상을 찾는 순서
+	  [ 타입 ] -> [ @Qualifier ] -> [ 이름 ] -> 실패
+	  
+	  * 사용가능 위치
+	  멤버변수, setter()메서드, 생성자, 일반메서드
+	  
+	  
+	 @Autowired
+	  Spring에서 지원하는 어노테이션(스프링에 종속적)
+	  
+	  * 대상을 찾는 순서
+	  [ 타입 ] -> [ 이름 ] -> [ @Qualifier ] -> 실패
+	  
+	  * 사용가능 위치
+	  멤버변수, setter()메서드, 생성자, 일반메서드
+	  
+	 
+	 @Resource
+	  java에서 지원하는 어노테이션 (특정 언어/프레임워크에 비종속적)
+	  
+	  * 대상을 찾는 순서
+	  [ 이름 ] -> [ 타입 ] -> [ @Qualifier ] -> 실패
+	  
+	  * 사용가능 위치
+	   멤버변수, setter()메서드		  
+	
+	 
+	 
+	 @Qualifier : 객체를 구분하는 별명/별칭
+	 
+ 	<bean id="dataSource"
+	      class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+	      ...MySQL
+	      <qualifier value="my">
+	      
+    </bean>	
+    
+ 	<bean id="dataSource"
+	      class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+	      ...Oracle
+	      <qualifier value="or">
+    </bean>	
+    
+    
+    @Inject / @Autowired
+    @Qualifier("or")
+    private DataSource ds;
+	 
+	 
+	* 커넥션 풀 (Connection Pool)
+	=> 웹개발을 해야하는 경우 필수적으로 사용.
+	   연결정보(Connection)을 미리 저장해놓고 
+	   필요에 따라서 대여/반납을 통해서 사용
+	   
+	   									커넥션풀(CP)
+	   [DB요청] ====================>   [ C / C / C / C / c / / / ]
+	   
+	   * 대부분의 동작을 수행하는데 오랜시간 안걸림
+	   * 만약 커넥션이 없다면(당장 할당이 불가능) 일단 대기시킴(Max-Wait)
+	     대기시간이 지난경우 임시로 커넥션을 생성 
+	     (사용이 끝난 임시커넥션은 제거)
+	     
+	     
+	
+	* 스프링 + MyBatis 사용법
+	
+	1) XML코드를 사용하여 SQL구문 분리,DAO사용해서 연결
+	장점 : 코드분리를 통한 유지보수성 증가
+	단점 : 코드 복잡성증가, 작업량(코드)증가 
+	
+	2) 어노테이션 사용해서 SQL구문 실행 
+	장점 : 별도의 DAO객체가 필요하지 X, 생산성 증가
+	단점 : SQL구문의 수정이 필요할때마다 컴파일을 수행
+	
+	3) XML코드, 어노테이션을 활용하여 SQL구문 실행
+	장점 : 간단SQL구문은 어노테이션, 복잡한 SQL구문은 XML코드
+	단점 : 개발자의 실력(능력)에 따라서 작성되는 기준이 모호함
+	   
+	
+	* 도메인(domain) : 프로젝트 개발에 필요한 중요한 용어/단어(명사)
+	ex) 쇼핑몰 프로젝트 - 회원,주문,고객,상품,반품....
+	 => 테이블의 생성기준 (물리적인 환경으로 분리가 가능한 단위)  
+	 => DTO클래스를 생성
+	
+	
+	MyBatis 사용순서 (1번방식)
+	
+	- 디비 생성
+	- 테이블 설계 및 생성
+	- 도메인 객체를 설계 / 클래스를 작성
+	- DAO 인터페이스를 생성
+	- 실행에 필요한 동작을 추상메서드로 구현
+	- XML Mapper 파일 생성
+		- Mapper파일에 DTD설정
+		- Mapper의 위치(저장경로)를 설정
+		- Mapper에 SQL구문을 작성
+	- 스프링(MyBatis)에서 XML Mapper를 연결하도록 설정
+	- DAO 인터페이스를 구현하는 객체를 생성(추상메서드 오버라이딩)
+	- DAO객체를 구현해서 테스트를 통한 결과 확인
+	
+	
+	
+	* 롬복 설치
+	
+	- 롬복파일 다운로드 https://projectlombok.org/download
+	- 바탕화면에 이동
+	- CMD창 사용해서 cd 사용해서 폴더이동	
+	- > java -jar lombok.jar
+	- 설치 경로 찾아서 설치
+	
+	
+   * log4j의 로그레벨
+     
+     FATAL (6) : 시스템 차원에서 심각한 문제 발생시 출력
+     ERROR (5) : 실행중 문제가 발생한 상태 출력
+     WARN  (4) : 시스템의 오류원인을 표시하는 메세지
+     INFO  (3) : 로그인,상태변경과 같은 실제 애플리케이션의 운영정보 출력
+     DEBUG (2) : 개발시에 필요한 정보를 출력
+     TRACE (1) : DEBUG레벨의 정보를 자세히 출력	
+	 
+	 => 설정해놓은 레벨보다 낮은 레벨의 로그는 출력X
+	 
+	 
+	
+ * 스프링 MVC - 컨트롤러
+   
+   - 스프링MVC 처리기능
+   	 URI분석해서 적당한 컨트롤러를 찾기
+   	 컨트롤러에 필요한 메서드 호출
+   	 연결된 뷰페이지 이동		
+   	 컨트롤러의 결과를 뷰페이지로 이동
+   	 파라메터 자동 수집
+   	 테스트기반의 설정가능(서버설정없이 사용)
+   
+   - 개발자 처리기능
+  	 특정 URI에 동작하는 기능 설계(메서드 in 컨트롤러)
+  	 서비스 객체 생성 & 연결
+  	 DAO 객체 생성 & 연결
+  	 뷰페이지에 전달받은 데이터 출력 	 
+	 
+	* 컨트롤러에서 구현하려는 동작이 조회/입력 => GET방식
+	* 컨트롤러에서 구현하려는 동작이 처리(DB-입력,수정,삭제) =>POST 
+	
+	* 컨트롤러 처리후 결과 처리 / 페이지 이동 => 미리 정의
+	
+	* 서비스 계층(비지니스 계층)
+	- 사용자의 요구사항을 구현하는 계층
+	- 컨트롤러 <-> DAO 사이에 연결다리
+	  (외부호출이 내부데이터 종속적인 상환을 막아줌)
+	
+	
+	
